@@ -27,19 +27,40 @@ import (
 )
 
 type BatchHandler[T any] struct {
-	l         logger.Logger
-	fn        func(msgs []*sarama.ConsumerMessage, t []T) error
-	batchSize int
+	l             logger.Logger
+	fn            func(msgs []*sarama.ConsumerMessage, t []T) error
+	batchSize     int
+	batchDuration time.Duration
 }
 
+type BatchHandlerOption[T any] func(batchHandler *BatchHandler[T])
+
 // NewBatchHandler 实现了ConsumerGroupHandler接口的handler:批量消费后再提交
+// 默认一批 10个 1秒，可用option修改它
 func NewBatchHandler[T any](l logger.Logger,
 	fn func(msgs []*sarama.ConsumerMessage, t []T) error,
-	batchSize int) *BatchHandler[T] {
-	return &BatchHandler[T]{
-		l:         l,
-		fn:        fn,
-		batchSize: batchSize,
+	opts ...BatchHandlerOption[T]) *BatchHandler[T] {
+	newBatchHandler := &BatchHandler[T]{
+		l:             l,
+		fn:            fn,
+		batchSize:     10,
+		batchDuration: time.Second,
+	}
+	for _, opt := range opts {
+		opt(newBatchHandler)
+	}
+	return newBatchHandler
+}
+
+func (h *BatchHandler[T]) SetBatchSize(batchSize int) BatchHandlerOption[T] {
+	return func(batchHandler *BatchHandler[T]) {
+		batchHandler.batchSize = batchSize
+	}
+}
+
+func (h *BatchHandler[T]) SetBatchDuration(batchDuration time.Duration) BatchHandlerOption[T] {
+	return func(batchHandler *BatchHandler[T]) {
+		batchHandler.batchDuration = batchDuration
 	}
 }
 
@@ -58,7 +79,7 @@ func (h *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession,
 	for {
 		msgs := make([]*sarama.ConsumerMessage, 0, h.batchSize)
 		ts := make([]T, 0, h.batchSize)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), h.batchDuration)
 		done := false
 		for i := 0; i < h.batchSize && !done; i++ {
 			select {

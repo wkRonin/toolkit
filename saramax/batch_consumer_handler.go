@@ -35,6 +35,18 @@ type BatchHandler[T any] struct {
 
 type BatchHandlerOption[T any] func(batchHandler *BatchHandler[T])
 
+func SetBatchSize[T any](batchSize int) BatchHandlerOption[T] {
+	return func(batchHandler *BatchHandler[T]) {
+		batchHandler.batchSize = batchSize
+	}
+}
+
+func SetBatchDuration[T any](batchDuration time.Duration) BatchHandlerOption[T] {
+	return func(batchHandler *BatchHandler[T]) {
+		batchHandler.batchDuration = batchDuration
+	}
+}
+
 // NewBatchHandler 实现了ConsumerGroupHandler接口的handler:批量消费后再提交
 // 默认一批 10个 1秒，可用option修改它
 func NewBatchHandler[T any](l logger.Logger,
@@ -50,18 +62,6 @@ func NewBatchHandler[T any](l logger.Logger,
 		opt(newBatchHandler)
 	}
 	return newBatchHandler
-}
-
-func (h *BatchHandler[T]) SetBatchSize(batchSize int) BatchHandlerOption[T] {
-	return func(batchHandler *BatchHandler[T]) {
-		batchHandler.batchSize = batchSize
-	}
-}
-
-func (h *BatchHandler[T]) SetBatchDuration(batchDuration time.Duration) BatchHandlerOption[T] {
-	return func(batchHandler *BatchHandler[T]) {
-		batchHandler.batchDuration = batchDuration
-	}
 }
 
 func (h *BatchHandler[T]) Setup(session sarama.ConsumerGroupSession) error {

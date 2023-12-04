@@ -23,17 +23,17 @@ import (
 
 	"github.com/IBM/sarama"
 
-	"github.com/wkRonin/toolkit/zapx"
+	"github.com/wkRonin/toolkit/logger"
 )
 
 type BatchHandler[T any] struct {
-	l         zapx.Logger
+	l         logger.Logger
 	fn        func(msgs []*sarama.ConsumerMessage, t []T) error
 	batchSize int
 }
 
 // NewBatchHandler 实现了ConsumerGroupHandler接口的handler:批量消费后再提交
-func NewBatchHandler[T any](l zapx.Logger,
+func NewBatchHandler[T any](l logger.Logger,
 	fn func(msgs []*sarama.ConsumerMessage, t []T) error,
 	batchSize int) *BatchHandler[T] {
 	return &BatchHandler[T]{
@@ -74,11 +74,11 @@ func (h *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession,
 				err := json.Unmarshal(msg.Value, &t)
 				if err != nil {
 					h.l.Error("反序列化消息体失败",
-						zapx.String("topic", msg.Topic),
-						zapx.Int32("partition", msg.Partition),
-						zapx.Int64("offset", msg.Offset),
+						logger.String("topic", msg.Topic),
+						logger.Int32("partition", msg.Partition),
+						logger.Int64("offset", msg.Offset),
 						// 这里可以考虑打印 msg.Value，但是有些时候 msg 本身包含敏感数据
-						zapx.Error(err))
+						logger.Error(err))
 					continue
 				}
 				msgs = append(msgs, msg)
@@ -91,7 +91,7 @@ func (h *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession,
 		}
 		err := h.fn(msgs, ts)
 		if err != nil {
-			h.l.Error("批量消费失败", zapx.Any("ConsumerMessages", msgs))
+			h.l.Error("批量消费失败", logger.Any("ConsumerMessages", msgs))
 		}
 		if err == nil {
 			// 遍历提交

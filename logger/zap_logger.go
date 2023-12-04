@@ -14,10 +14,12 @@
  *    limitations under the License.
  */
 
-package zapx
+package logger
 
 import (
 	"go.uber.org/zap"
+
+	"github.com/wkRonin/toolkit/zapx"
 )
 
 type ZapLogger struct {
@@ -50,7 +52,7 @@ func (z *ZapLogger) toArgs(args []Field) []zap.Field {
 	res := make([]zap.Field, 0, len(args))
 	for _, ar := range args {
 		if ar.Key == "phone" {
-			newAr := MaskPhone(ar.Key, ar.Value.(string))
+			newAr := zapx.MaskPhone(ar.Key, ar.Value.(string))
 			res = append(res, zap.Any(newAr.Key, newAr.String))
 			continue
 		}

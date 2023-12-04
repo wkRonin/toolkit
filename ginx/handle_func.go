@@ -24,7 +24,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/wkRonin/toolkit/zapx"
+	"github.com/wkRonin/toolkit/logger"
 )
 
 // 暂无更好的办法，先用包变量
@@ -44,24 +44,24 @@ Wrap系列函数说明：
 
 // WrapReq 统一处理请求体bind/错误日志打印
 func WrapReq[T any](fn func(ctx *gin.Context, req T) (Result, error),
-	l zapx.Logger,
+	l logger.Logger,
 	lm LogMessage) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T
 		if err := ctx.Bind(&req); err != nil {
 			l.Error("请求参数错误",
-				zapx.String("method", lm.Method),
-				zapx.Error(err))
+				logger.String("method", lm.Method),
+				logger.Error(err))
 			return
 		}
 		res, err := fn(ctx, req)
 		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		if err != nil {
 			l.Error(lm.Message,
-				zapx.String("method", lm.Method),
-				zapx.Error(err),
+				logger.String("method", lm.Method),
+				logger.Error(err),
 				// 命中的路由
-				zapx.String("route", ctx.FullPath()))
+				logger.String("route", ctx.FullPath()))
 		}
 		ctx.JSON(http.StatusOK, res)
 	}
@@ -69,22 +69,22 @@ func WrapReq[T any](fn func(ctx *gin.Context, req T) (Result, error),
 
 // WrapReqAndToken 统一处理请求体bind/ctx中取值/错误日志打印
 func WrapReqAndToken[T any, C jwt.Claims](fn func(ctx *gin.Context, req T, uc C) (Result, error),
-	l zapx.Logger,
+	l logger.Logger,
 	lm LogMessage,
 	ctxKey string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T
 		if err := ctx.Bind(&req); err != nil {
 			l.Error("请求参数错误",
-				zapx.String("method", lm.Method),
-				zapx.Error(err))
+				logger.String("method", lm.Method),
+				logger.Error(err))
 			return
 		}
 		uc, ok := ctx.Get(ctxKey)
 		if !ok {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			l.Warn("jwt中不存在用户信息",
-				zapx.String("method", lm.Method),
+				logger.String("method", lm.Method),
 			)
 			return
 		}
@@ -93,7 +93,7 @@ func WrapReqAndToken[T any, C jwt.Claims](fn func(ctx *gin.Context, req T, uc C)
 		if !ok {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			l.Warn("jwt中用户信息非法",
-				zapx.String("method", lm.Method),
+				logger.String("method", lm.Method),
 			)
 			return
 		}
@@ -101,10 +101,10 @@ func WrapReqAndToken[T any, C jwt.Claims](fn func(ctx *gin.Context, req T, uc C)
 		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		if err != nil {
 			l.Error(lm.Message,
-				zapx.String("method", lm.Method),
-				zapx.Error(err),
+				logger.String("method", lm.Method),
+				logger.Error(err),
 				// 命中的路由
-				zapx.String("route", ctx.FullPath()),
+				logger.String("route", ctx.FullPath()),
 			)
 		}
 		ctx.JSON(http.StatusOK, res)
@@ -114,7 +114,7 @@ func WrapReqAndToken[T any, C jwt.Claims](fn func(ctx *gin.Context, req T, uc C)
 // WrapToken 统一处理ctx中取值/错误日志打印
 func WrapToken[C jwt.Claims](
 	fn func(ctx *gin.Context, uc C) (Result, error),
-	l zapx.Logger,
+	l logger.Logger,
 	lm LogMessage,
 	ctxKey string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -122,7 +122,7 @@ func WrapToken[C jwt.Claims](
 		if !ok {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			l.Warn("jwt中不存在用户信息",
-				zapx.String("method", lm.Method),
+				logger.String("method", lm.Method),
 			)
 			return
 		}
@@ -131,7 +131,7 @@ func WrapToken[C jwt.Claims](
 		if !ok {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			l.Warn("jwt中用户信息非法",
-				zapx.String("method", lm.Method),
+				logger.String("method", lm.Method),
 			)
 			return
 		}
@@ -139,10 +139,10 @@ func WrapToken[C jwt.Claims](
 		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		if err != nil {
 			l.Error(lm.Message,
-				zapx.String("method", lm.Method),
-				zapx.Error(err),
+				logger.String("method", lm.Method),
+				logger.Error(err),
 				// 命中的路由
-				zapx.String("route", ctx.FullPath()),
+				logger.String("route", ctx.FullPath()),
 			)
 		}
 		ctx.JSON(http.StatusOK, res)
@@ -151,17 +151,17 @@ func WrapToken[C jwt.Claims](
 
 // WrapError 统一处理错误日志打印
 func WrapError(fn func(ctx *gin.Context) (Result, error),
-	l zapx.Logger,
+	l logger.Logger,
 	lm LogMessage) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		res, err := fn(ctx)
 		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		if err != nil {
 			l.Error(lm.Message,
-				zapx.String("method", lm.Method),
+				logger.String("method", lm.Method),
 				// 命中的路由
-				zapx.String("route", ctx.FullPath()),
-				zapx.Error(err))
+				logger.String("route", ctx.FullPath()),
+				logger.Error(err))
 		}
 		// 约定msg不为空才返回响应体
 		if res.Msg != "" {

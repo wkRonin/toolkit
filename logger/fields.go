@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package zapx
+package logger
 
 func String(key, val string) Field {
 	return Field{

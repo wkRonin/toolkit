@@ -21,16 +21,16 @@ import (
 
 	"github.com/IBM/sarama"
 
-	"github.com/wkRonin/toolkit/zapx"
+	"github.com/wkRonin/toolkit/logger"
 )
 
 type Handler[T any] struct {
-	l  zapx.Logger
+	l  logger.Logger
 	fn func(msg *sarama.ConsumerMessage, t T) error
 }
 
 // NewHandler 实现了ConsumerGroupHandler接口的handler:单个消费就提交
-func NewHandler[T any](l zapx.Logger,
+func NewHandler[T any](l logger.Logger,
 	fn func(msg *sarama.ConsumerMessage, t T) error) *Handler[T] {
 	return &Handler[T]{
 		l:  l,
@@ -54,21 +54,21 @@ func (h *Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession,
 		err := json.Unmarshal(msg.Value, &t)
 		if err != nil {
 			h.l.Error("反序列化消息体失败",
-				zapx.String("topic", msg.Topic),
-				zapx.Int32("partition", msg.Partition),
-				zapx.Int64("offset", msg.Offset),
+				logger.String("topic", msg.Topic),
+				logger.Int32("partition", msg.Partition),
+				logger.Int64("offset", msg.Offset),
 				// 这里可以考虑打印 msg.Value，但是有些时候 msg 本身包含敏感数据
-				zapx.Error(err))
+				logger.Error(err))
 			// 不中断，继续下一个
 			continue
 		}
 		err = h.fn(msg, t)
 		if err != nil {
 			h.l.Error("处理消息失败",
-				zapx.String("topic", msg.Topic),
-				zapx.Int32("partition", msg.Partition),
-				zapx.Int64("offset", msg.Offset),
-				zapx.Error(err))
+				logger.String("topic", msg.Topic),
+				logger.Int32("partition", msg.Partition),
+				logger.Int64("offset", msg.Offset),
+				logger.Error(err))
 		}
 		session.MarkMessage(msg, "")
 	}

@@ -22,17 +22,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/wkRonin/toolkit/logger"
 	"github.com/wkRonin/toolkit/ratelimit"
-	"github.com/wkRonin/toolkit/zapx"
 )
 
 type MiddlewareBuilder struct {
 	prefix  string
 	limiter ratelimit.Limiter
-	l       zapx.Logger
+	l       logger.Logger
 }
 
-func NewMiddlewareBuilder(limiter ratelimit.Limiter, l zapx.Logger) *MiddlewareBuilder {
+func NewMiddlewareBuilder(limiter ratelimit.Limiter, l logger.Logger) *MiddlewareBuilder {
 	return &MiddlewareBuilder{
 		prefix:  "ip-limiter",
 		limiter: limiter,
@@ -49,12 +49,12 @@ func (b *MiddlewareBuilder) Build() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		limited, err := b.limit(ctx)
 		if err != nil {
-			b.l.Error("err from limit", zapx.Error(err))
+			b.l.Error("err from limit", logger.Error(err))
 			ctx.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 		if limited {
-			b.l.Warn("has been limited", zapx.String("ip", ctx.ClientIP()))
+			b.l.Warn("has been limited", logger.String("ip", ctx.ClientIP()))
 			ctx.AbortWithStatus(http.StatusTooManyRequests)
 			return
 		}

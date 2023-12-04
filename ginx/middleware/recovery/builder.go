@@ -27,16 +27,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/wkRonin/toolkit/zapx"
+	"github.com/wkRonin/toolkit/logger"
 )
 
 type MiddlewareBuilder struct {
 	allowWriteStack bool
 	isAbort         bool
-	l               zapx.Logger
+	l               logger.Logger
 }
 
-func NewMiddlewareBuilder(l zapx.Logger) *MiddlewareBuilder {
+func NewMiddlewareBuilder(l logger.Logger) *MiddlewareBuilder {
 	return &MiddlewareBuilder{
 		allowWriteStack: false,
 		isAbort:         false,
@@ -76,8 +76,8 @@ func (b *MiddlewareBuilder) Build() gin.HandlerFunc {
 				httpRequest, _ := httputil.DumpRequest(c.Request, false)
 				if brokenPipe {
 					b.l.Error(c.Request.URL.Path,
-						zapx.Any("error", err),
-						zapx.String("request", string(httpRequest)),
+						logger.Any("error", err),
+						logger.String("request", string(httpRequest)),
 					)
 					// 如果连接已断开，我们无法向其写入状态
 					c.Error(err.(error))
@@ -89,14 +89,14 @@ func (b *MiddlewareBuilder) Build() gin.HandlerFunc {
 				// 是否打印堆栈信息，使用的是debug.Stack()，传入false，在日志中就没有堆栈信息
 				if b.allowWriteStack {
 					b.l.Error("[Recovery from panic]",
-						zapx.Any("error", err),
-						zapx.String("request", string(httpRequest)),
-						zapx.String("stack", string(debug.Stack())),
+						logger.Any("error", err),
+						logger.String("request", string(httpRequest)),
+						logger.String("stack", string(debug.Stack())),
 					)
 				} else {
 					b.l.Error("[Recovery from panic]",
-						zapx.Any("error", err),
-						zapx.String("request", string(httpRequest)),
+						logger.Any("error", err),
+						logger.String("request", string(httpRequest)),
 					)
 				}
 				if b.isAbort {

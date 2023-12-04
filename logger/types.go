@@ -14,19 +14,16 @@
  *    limitations under the License.
  */
 
-package zapx
+package logger
 
-type NopLogger struct {
+type Logger interface {
+	Debug(msg string, args ...Field)
+	Info(msg string, args ...Field)
+	Warn(msg string, args ...Field)
+	Error(msg string, args ...Field)
 }
 
-func (n *NopLogger) Debug(msg string, args ...Field) {
-}
-
-func (n *NopLogger) Info(msg string, args ...Field) {
-}
-
-func (n *NopLogger) Warn(msg string, args ...Field) {
-}
-
-func (n *NopLogger) Error(msg string, args ...Field) {
+type Field struct {
+	Key   string
+	Value any
 }

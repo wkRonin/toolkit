@@ -33,9 +33,9 @@ type TracingHook struct {
 }
 
 // NewTracingHook 使用redis的hook接口来提供trace链路追踪
-func NewTracingHook(tracer string, isCluster bool) *TracingHook {
+func NewTracingHook(isCluster bool) *TracingHook {
 	return &TracingHook{
-		tracer:    otel.GetTracerProvider().Tracer(tracer),
+		tracer:    otel.GetTracerProvider().Tracer("github.com/wkRonin/toolkit/redisx/trace"),
 		isCluster: isCluster,
 	}
 }

@@ -20,6 +20,7 @@ type Server struct {
 	EtcdAddrs []string
 	Name      string
 	L         logger.Logger
+	IsHost    bool
 	kaCancel  func()
 	em        endpoints.Manager
 	client    *etcdv3.Client
@@ -53,7 +54,12 @@ func (s *Server) register() error {
 	if err != nil {
 		return err
 	}
-	addr := netx.GetOutboundIP() + ":" + strconv.Itoa(s.Port)
+	var addr string
+	if s.IsHost {
+		addr = netx.GetOutboundIP() + ":" + strconv.Itoa(s.Port)
+	} else {
+		addr = s.Name + ":" + strconv.Itoa(s.Port)
+	}
 	key := "service/" + s.Name + "/" + addr
 	s.key = key
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

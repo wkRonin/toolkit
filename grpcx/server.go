@@ -20,11 +20,18 @@ type Server struct {
 	EtcdAddrs []string
 	Name      string
 	L         logger.Logger
-	IsHost    bool
-	kaCancel  func()
-	em        endpoints.Manager
-	client    *etcdv3.Client
-	key       string
+	// 微服务是否以host模式运行，是host则自动获取本地ip地址注册到注册中心
+	// 不是host模式则以Name作为微服务访问地址（k8s中则为svc名称，docker中则为container名称）
+	IsHost bool
+	// 是否使用本仓库的权重负载均衡，使用则传递Weight为权重值
+	UseWrr bool
+	// 使用权重负载均衡，又没传weight则默认为10
+	// weight建议为10的整数倍
+	Weight   int
+	kaCancel func()
+	em       endpoints.Manager
+	client   *etcdv3.Client
+	key      string
 }
 
 // Serve 启动服务器并且阻塞
@@ -69,9 +76,13 @@ func (s *Server) register() error {
 
 	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	err = em.AddEndpoint(ctx, key, endpoints.Endpoint{
-		Addr: addr,
-	}, etcdv3.WithLease(leaseResp.ID))
+	ep := endpoints.Endpoint{Addr: addr}
+	if s.UseWrr {
+		ep.Metadata = map[string]any{
+			"weight": s.Weight,
+		}
+	}
+	err = em.AddEndpoint(ctx, key, ep, etcdv3.WithLease(leaseResp.ID))
 
 	kaCtx, kaCancel := context.WithCancel(context.Background())
 	s.kaCancel = kaCancel

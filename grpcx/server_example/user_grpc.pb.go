@@ -4,10 +4,11 @@
 // - protoc             v4.23.1
 // source: user.proto
 
-package example
+package server_example
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

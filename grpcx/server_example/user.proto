@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/grpcx/balancer/wrr/example";
+option go_package = "github.com/toolkit/grpcx/server_example";
 
 service UserService {
   rpc GetById(GetByIdRequest) returns (GetByIdResponse);

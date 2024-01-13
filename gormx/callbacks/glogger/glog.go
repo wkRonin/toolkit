@@ -44,5 +44,10 @@ func (gl GormLog) String() {
 	if thresholdMillis <= gl.Duration {
 		logStr = fmt.Sprintf("%s | Is Slow Query SQL", logStr)
 	}
-	gl.l.Info("Gorm", logger.String("GormInfo", logStr))
+	switch gl.SQL {
+	case "SHOW STATUS":
+		gl.l.Debug("Gorm", logger.String("GormDebug", logStr))
+	default:
+		gl.l.Info("Gorm", logger.String("GormInfo", logStr))
+	}
 }

@@ -29,9 +29,11 @@ import (
 )
 
 type MetricInterceptorBuilder struct {
-	Namespace string
-	Subsystem string
-	Name      string
+	Namespace  string
+	Subsystem  string
+	Name       string
+	Help       string
+	InstanceID string
 	interceptors.Builder
 }
 
@@ -40,13 +42,17 @@ func (b *MetricInterceptorBuilder) BuildUnaryServerInterceptor() grpc.UnaryServe
 		prometheus.SummaryOpts{
 			Namespace: b.Namespace,
 			Subsystem: b.Subsystem,
-			Name:      b.Name, // server_handle_seconds
+			Name:      b.Name + "server_handle_seconds", // server_handle_seconds
 			Objectives: map[float64]float64{
 				0.5:   0.01,
 				0.9:   0.01,
 				0.95:  0.01,
 				0.99:  0.001,
 				0.999: 0.0001,
+			},
+			Help: b.Help,
+			ConstLabels: map[string]string{
+				"instance_id": b.InstanceID,
 			},
 		}, []string{"type", "service", "method", "peer", "code"})
 	prometheus.MustRegister(summary)

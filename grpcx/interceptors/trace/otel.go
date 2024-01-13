@@ -68,7 +68,7 @@ func (b *OTELInterceptorBuilder) BuildUnaryServerInterceptor() grpc.UnaryServerI
 		attribute.Key("rpc.grpc.kind").String("UnaryServer"),
 	}
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (reply interface{}, err error) {
-		ctx = extract(ctx, propagator)
+		ctx = b.extract(ctx, propagator)
 		ctx, span := tracer.Start(ctx, info.FullMethod, trace.WithAttributes(attrs...))
 		span.SetAttributes(
 			semconv.RPCMethodKey.String(info.FullMethod),
@@ -107,21 +107,13 @@ func (b *OTELInterceptorBuilder) BuildUnaryClientInterceptor() grpc.UnaryClientI
 	}
 
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) (err error) {
-		md, ok := metadata.FromOutgoingContext(ctx)
-		if !ok {
-			md = metadata.New(nil)
-		}
-		// 设置自己的ip
-		md.Set(interceptors.PeerIPKey, netx.GetOutboundIP())
-		// 设置自己的Name
-		md.Set(interceptors.PeerNameKey, b.serviceName)
 		ctx, span := tracer.Start(ctx, method, trace.WithAttributes(attrs...))
 		span.SetAttributes(
 			semconv.RPCMethodKey.String(method),
 			semconv.NetPeerNameKey.String(b.peerName),
 		)
 		// 把这个往后传递
-		ctx = inject(ctx, propagator)
+		ctx = b.inject(ctx, propagator)
 		defer func() {
 			if err != nil {
 				span.RecordError(err)
@@ -138,7 +130,7 @@ func (b *OTELInterceptorBuilder) BuildUnaryClientInterceptor() grpc.UnaryClientI
 	}
 }
 
-func extract(ctx context.Context, propagators propagation.TextMapPropagator) context.Context {
+func (b *OTELInterceptorBuilder) extract(ctx context.Context, propagators propagation.TextMapPropagator) context.Context {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		md = metadata.MD{}
@@ -147,10 +139,19 @@ func extract(ctx context.Context, propagators propagation.TextMapPropagator) con
 	return propagators.Extract(ctx, GrpcHeaderCarrier(md))
 }
 
-func inject(ctx context.Context, propagators propagation.TextMapPropagator) context.Context {
+func (b *OTELInterceptorBuilder) inject(ctx context.Context, propagators propagation.TextMapPropagator) context.Context {
 	md, ok := metadata.FromOutgoingContext(ctx)
 	if !ok {
 		md = metadata.MD{}
+	}
+	// 判断一下 防止和其它interceptor重复设置
+	if md.Get(interceptors.PeerIPKey) == nil {
+		// 设置自己的ip
+		md.Set(interceptors.PeerIPKey, netx.GetOutboundIP())
+	}
+	if md.Get(interceptors.PeerNameKey) == nil {
+		// 设置自己的Name
+		md.Set(interceptors.PeerNameKey, b.serviceName)
 	}
 	propagators.Inject(ctx, GrpcHeaderCarrier(md))
 	return metadata.NewOutgoingContext(ctx, md)

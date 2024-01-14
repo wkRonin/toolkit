@@ -60,13 +60,13 @@ func (b *MetricInterceptorBuilder) BuildUnaryServerInterceptor() grpc.UnaryServe
 		start := time.Now()
 		defer func() {
 			serviceName, method := b.splitMethodName(info.FullMethod)
-			st, _ := status.FromError(err)
-			code := "OK"
-			if st != nil {
-				code = st.Code().String()
+			duration := float64(time.Since(start).Milliseconds())
+			if err == nil {
+				summary.WithLabelValues("unary", serviceName, method, b.PeerName(ctx), "OK").Observe(duration)
+			} else {
+				st, _ := status.FromError(err)
+				summary.WithLabelValues("unary", serviceName, method, b.PeerName(ctx), st.Code().String()).Observe(duration)
 			}
-			summary.WithLabelValues("unary", serviceName, method,
-				b.PeerName(ctx), code).Observe(float64(time.Since(start).Milliseconds()))
 		}()
 		resp, err = handler(ctx, req)
 		return

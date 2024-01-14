@@ -29,9 +29,11 @@ import (
 )
 
 type MetricInterceptorBuilder struct {
-	Namespace string
-	Subsystem string
-	Name      string
+	Namespace  string
+	Subsystem  string
+	Name       string
+	Help       string
+	InstanceID string
 	interceptors.Builder
 }
 
@@ -40,7 +42,7 @@ func (b *MetricInterceptorBuilder) BuildUnaryServerInterceptor() grpc.UnaryServe
 		prometheus.SummaryOpts{
 			Namespace: b.Namespace,
 			Subsystem: b.Subsystem,
-			Name:      b.Name, // server_handle_seconds
+			Name:      b.Name + "server_handle_seconds", // server_handle_seconds
 			Objectives: map[float64]float64{
 				0.5:   0.01,
 				0.9:   0.01,
@@ -48,19 +50,23 @@ func (b *MetricInterceptorBuilder) BuildUnaryServerInterceptor() grpc.UnaryServe
 				0.99:  0.001,
 				0.999: 0.0001,
 			},
+			Help: b.Help,
+			ConstLabels: map[string]string{
+				"instance_id": b.InstanceID,
+			},
 		}, []string{"type", "service", "method", "peer", "code"})
 	prometheus.MustRegister(summary)
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 		start := time.Now()
 		defer func() {
 			serviceName, method := b.splitMethodName(info.FullMethod)
-			st, _ := status.FromError(err)
-			code := "OK"
-			if st != nil {
-				code = st.Code().String()
+			duration := float64(time.Since(start).Milliseconds())
+			if err == nil {
+				summary.WithLabelValues("unary", serviceName, method, b.PeerName(ctx), "OK").Observe(duration)
+			} else {
+				st, _ := status.FromError(err)
+				summary.WithLabelValues("unary", serviceName, method, b.PeerName(ctx), st.Code().String()).Observe(duration)
 			}
-			summary.WithLabelValues("unary", serviceName, method,
-				b.PeerName(ctx), code).Observe(float64(time.Since(start).Milliseconds()))
 		}()
 		resp, err = handler(ctx, req)
 		return

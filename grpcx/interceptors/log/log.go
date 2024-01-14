@@ -31,11 +31,15 @@ import (
 
 	"github.com/wkRonin/toolkit/grpcx/interceptors"
 	"github.com/wkRonin/toolkit/logger"
+	"github.com/wkRonin/toolkit/netx"
 )
 
 type LoggerInterceptorBuilder struct {
 	l logger.Logger
 	interceptors.Builder
+	// 自己的名字
+	serviceName string
+	// 远端的名字
 	peerName string
 }
 
@@ -155,8 +159,26 @@ func (b *LoggerInterceptorBuilder) BuildUnaryClientInterceptor() grpc.UnaryClien
 			fields = append(fields, logger.Any("res", resMap))
 			b.l.Info("grpc.response", fields...)
 		}
-		return err
+		ctx = b.setClientMetadata(ctx)
+		return invoker(ctx, method, req, reply, cc, opts...)
 	}
+}
+
+func (b *LoggerInterceptorBuilder) setClientMetadata(ctx context.Context) context.Context {
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		md = metadata.MD{}
+	}
+	// 判断一下 防止和其它interceptor重复设置
+	if md.Get(interceptors.PeerIPKey) == nil {
+		// 设置自己的ip
+		md.Set(interceptors.PeerIPKey, netx.GetOutboundIP())
+	}
+	if md.Get(interceptors.PeerNameKey) == nil {
+		// 设置自己的Name
+		md.Set(interceptors.PeerNameKey, b.serviceName)
+	}
+	return metadata.NewOutgoingContext(ctx, md)
 }
 
 func (b *LoggerInterceptorBuilder) stringToJSON(obj interface{}) string {

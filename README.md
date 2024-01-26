@@ -18,7 +18,7 @@
 6. grpc的截断器
    - 使用本库的logger实现服务端和客户端的日志记录
    - 客户端和微服务之间的链路追踪
-   - TODO: metric待实现
+   - 客户端和服务端的metric指标采集
 
 ## ginx
 描述：：gin中间件、统一处理error日志
@@ -41,9 +41,9 @@
 1. 使用滑动窗口算法的lua脚本实现限流接口
 
 ## redisx
-实现redis的hook接口
-1. prometheus埋点redis命令的响应时间
-2. opentelemetry 的 trace 埋点
+1. 实现redis的hook接口：prometheus埋点redis命令的响应时间
+2. 实现redis的hook接口：opentelemetry 的 trace 埋点
+3. 使用redis实现分布式锁
 
 ## saramax
 实现sarama的ConsumerGroupHandler接口

@@ -6,6 +6,7 @@ require (
 	github.com/IBM/sarama v1.42.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/google/uuid v1.3.1
 	github.com/hashicorp/consul/api v1.26.1
 	github.com/json-iterator/go v1.1.12
 	github.com/natefinch/lumberjack v2.0.0+incompatible
@@ -20,6 +21,7 @@ require (
 	go.uber.org/atomic v1.11.0
 	go.uber.org/mock v0.4.0
 	go.uber.org/zap v1.26.0
+	golang.org/x/sync v0.4.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 	gorm.io/gorm v1.25.5

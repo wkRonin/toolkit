@@ -160,7 +160,7 @@ func (b *LoggerInterceptorBuilder) BuildUnaryClientInterceptor() grpc.UnaryClien
 			b.l.Info("grpc.response", fields...)
 		}
 		ctx = b.setClientMetadata(ctx)
-		return invoker(ctx, method, req, reply, cc, opts...)
+		return err
 	}
 }
 
